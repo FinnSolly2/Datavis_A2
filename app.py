@@ -174,6 +174,12 @@ if st.session_state.dataset is not None:
     
     # Target variable selection
     all_cols = numerical_cols + categorical_cols
+    
+    # Add information about columns with missing values
+    cols_with_missing = st.session_state.dataset.columns[st.session_state.dataset.isna().any()].tolist()
+    if cols_with_missing:
+        st.sidebar.warning(f"⚠️ The following columns contain missing values which may cause issues if selected as target: {', '.join(cols_with_missing)}")
+    
     target_variable = st.sidebar.selectbox("Select target variable", all_cols)
     
     if target_variable in numerical_cols:
@@ -273,6 +279,11 @@ if st.session_state.dataset is not None:
         X = st.session_state.dataset[selected_features]
         y = st.session_state.dataset[target_variable]
         
+        # Check for missing values in the target variable
+        if y.isna().any():
+            st.error(f"Error: The target variable '{target_variable}' contains missing values (NaN). Please select a different target variable or preprocess your data to handle missing values.")
+            return False
+            
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, random_state=random_state
@@ -461,8 +472,9 @@ if st.session_state.dataset is not None:
     # Train model if button is clicked
     if fit_button:
         with st.spinner("Training model..."):
-            train_model()
-        st.success("Model trained successfully!")
+            model_trained = train_model()
+        if model_trained is not False:  # Only show success if there was no error
+            st.success("Model trained successfully!")
 
 # Display model results
 if st.session_state.trained_model is not None:
